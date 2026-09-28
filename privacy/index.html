@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hopper Privacy Policy</title>
+<meta name="description" content="What Hopper stores, where it is kept, what never leaves your device, and how to delete your account or ask for your data.">
+<link rel="stylesheet" href="../style.css">
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Hopper</p>
+  <h1>Privacy policy</h1>
+  <p class="lede">What Hopper stores, where it is kept, and what never leaves
+  your device.</p>
+</header>
+
+<p class="meta">Last updated 26 September 2026. Applies to Hopper 1.1 for
+iPhone, iPad, Mac and Apple Watch.</p>
+
+<p>Hopper is made by <strong>The Socials LLC</strong>, Dubai, United Arab
+Emirates. In this policy, "we" and "us" mean The Socials LLC, and "you" means the
+person using the app.</p>
+
+<div class="card">
+<h3>The short version</h3>
+<ul>
+  <li>Hopper stores what you put into it: your captures, ideas, tasks, ventures,
+      journal entries and the log of what you did with them.</li>
+  <li>That is kept in one database, hosted for us by Supabase in Sydney,
+      Australia, and it is locked to your account.</li>
+  <li>There are no ads, no trackers, no analytics and no third party software
+      development kits in the app.</li>
+  <li>We do not sell your data, rent it, or share it for advertising. Ever.</li>
+  <li>You can delete your account, and everything in it, from inside the app.</li>
+</ul>
+</div>
+
+<h2>What we store, and where</h2>
+
+<p>Everything Hopper keeps on our side lives in a single PostgreSQL database
+hosted for us by Supabase, in the <strong>ap-southeast-2 region, which is
+Sydney, Australia</strong>. Every row carries the id of the account that owns
+it, and the database refuses to return a row to anyone but its owner.</p>
+
+<h3>Your account</h3>
+
+<ul>
+  <li>Your <strong>email address</strong>, which is how you sign in and how we
+      reach you.</li>
+  <li>Your <strong>password</strong>, stored only as a one way hash by the
+      authentication service. Neither we nor the app can read it back.</li>
+  <li>A generated <strong>account id</strong>, plus the sign in and session
+      records the authentication service keeps so that you stay signed in.</li>
+  <li>Your <strong>time zone</strong>, so that "today" means the same day to
+      Hopper as it does to you.</li>
+</ul>
+
+<h3>What you put into Hopper</h3>
+
+<ul>
+  <li><strong>Captures and ideas:</strong> the text you wrote, where it was
+      written from, and when.</li>
+  <li><strong>Tasks:</strong> title, due date, due time, priority, state, your
+      notes, which venture and category it sits in, and when it was completed.</li>
+  <li><strong>Subtasks:</strong> the checklist items under a task, and whether
+      each is done.</li>
+  <li><strong>Ventures:</strong> the names you chose, their colours and the
+      order you put them in.</li>
+  <li><strong>Categories:</strong> the folder names you chose inside each
+      venture. A category carries a name and nothing else.</li>
+  <li><strong>Journal entries:</strong> the date, what you wrote, and the energy
+      rating you gave the day.</li>
+  <li><strong>Carry records:</strong> one row per task per day it stayed open,
+      which is what lets the Day screen say how long something has been carried.</li>
+  <li><strong>Activity log:</strong> one row for each task you create,
+      complete, reopen, rename, reschedule, move or drop, and each capture you
+      edit or delete, with the task's title and the time it happened.</li>
+  <li><strong>Suggestions:</strong> when Hopper guesses which venture a capture
+      belongs to, it records the guess, how confident it was, the reason, and
+      what you chose in the end.</li>
+  <li><strong>Your settings:</strong> your notification preferences and which
+      screens you have showing on which device.</li>
+</ul>
+
+<p>The guessing is a list of keyword rules running inside our own database. Your
+text is not sent to any outside service to be read, scored, classified or used
+to train anything.</p>
+
+<h2>What stays on your device</h2>
+
+<p>Some things never reach our database at all.</p>
+
+<ul>
+  <li><strong>Face ID and Touch ID.</strong> Unlocking is handled entirely by
+      your device, which answers Hopper with yes or no and nothing else. Hopper
+      never sees, receives or stores any biometric data, and no face or
+      fingerprint information is ever uploaded.</li>
+  <li><strong>Apple Reminders.</strong> When you tap Import from Apple
+      Reminders, Hopper reads your open reminders once, on the device, and turns
+      them into Hopper tasks. It does not keep a connection to Reminders, does
+      not read them again afterwards, and never writes to or changes anything in
+      Apple's Reminders app. Only the tasks created from that import are stored,
+      the same as any task you type.</li>
+  <li><strong>Notes files.</strong> A PDF, Word, RTF, text or Markdown file you
+      drop into Hopper is read on the device. The file itself is never uploaded
+      and is not kept by Hopper. Only the action items you confirm on the review
+      screen are saved as tasks.</li>
+  <li><strong>Scanned pages.</strong> A scanned PDF with no text in it is read by
+      recognising the text in the page images on the device, using Apple's own
+      on device text recognition. The page images are not uploaded anywhere.</li>
+  <li><strong>Your sign in session,</strong> which is held in the device
+      Keychain.</li>
+  <li><strong>Captures waiting to upload,</strong> which are held in a small
+      database file on the device until they go up, then removed.</li>
+  <li><strong>Small preferences,</strong> such as the email address to fill in
+      next time, whether unlocking with your face is on, and whether the smart
+      lists are showing.</li>
+  <li><strong>The widget snapshot,</strong> a few task titles the app leaves for
+      the widget to draw, inside the app's own shared container on the
+      device.</li>
+</ul>
+
+<h2>No ads, no tracking, no analytics</h2>
+
+<ul>
+  <li>Hopper contains <strong>no advertising</strong> and shows no ads.</li>
+  <li>Hopper does <strong>no tracking</strong>. It does not follow you across
+      other apps or websites, and it collects no advertising identifier. The
+      app's privacy manifests declare no tracking to Apple.</li>
+  <li>Hopper has <strong>no analytics</strong> and no crash reporting service.
+      There is no usage telemetry, no event logging to a third party, and no
+      profiling of you.</li>
+  <li>Hopper contains <strong>no third party software development kits</strong>.
+      It is built on Apple's own frameworks and talks to our database and
+      nothing else.</li>
+  <li>We do <strong>not sell, rent or trade</strong> your data, and we do not
+      share it with anyone for advertising or marketing.</li>
+</ul>
+
+<h2>Who else can see it</h2>
+
+<p>Your data is handled by us and by the companies that run the infrastructure
+we use. Today that is one company:</p>
+
+<ul>
+  <li><strong>Supabase,</strong> which hosts the database and the authentication
+      service, in Sydney, Australia.</li>
+</ul>
+
+<p>Supabase processes the data only to provide that hosting, on our
+instructions, under an agreement that requires it to keep the data confidential
+and to protect it with appropriate security measures.</p>
+
+<p>If we ever add another company to that list, it will be held to the same
+standard: it must protect your data at least as well as this policy promises,
+under a written agreement, and it may use the data only to provide the service
+to us and never for its own purposes. This page will be updated before that
+happens.</p>
+
+<p>Apple distributes the app, and your purchase or download relationship is with
+Apple under Apple's own privacy policy. Apple does not receive the contents of
+your Hopper account from us.</p>
+
+<p>We will also disclose data where the law genuinely requires it, or where it
+is necessary to protect someone's safety or our legal rights. That has not
+happened, and if it does we will tell you unless we are forbidden to.</p>
+
+<h2>How long we keep it</h2>
+
+<ul>
+  <li>What you put into Hopper is kept until you delete it, or until you delete
+      your account. There is no automatic expiry and nothing is quietly archived
+      elsewhere.</li>
+  <li>Deleting a capture, a task, a venture or a journal entry in the app
+      removes that row from the database.</li>
+  <li>Deleting your account removes everything listed above, in one go, and
+      closes the account itself.</li>
+  <li>Deleted rows may survive for a short period in our hosting provider's
+      routine backups before those backups are overwritten in the normal course
+      of their retention cycle. They are not used for anything else.</li>
+</ul>
+
+<h2>Deleting your account</h2>
+
+<p>You can do this yourself, in the app, on iPhone, iPad or Mac:</p>
+
+<ol>
+  <li>Open Settings from the home screen.</li>
+  <li>Scroll to Account.</li>
+  <li>Tap <span class="path">Delete account</span>, then confirm.</li>
+</ol>
+
+<p>That removes your account and everything in it: captures, ideas, tasks,
+subtasks, ventures, categories, journal entries, carry records, activity log,
+suggestions and settings, along with your sign in records. Hopper then signs you
+out on that device and clears what was stored there, including captures that had
+not uploaded yet. Another device you use Hopper on stops syncing straight away
+and signs itself out soon after. Nothing in Apple Reminders is changed.</p>
+
+<p>It cannot be undone, and we cannot restore a deleted account.</p>
+
+<h2>Asking us for your data</h2>
+
+<p>Email <span class="contact">thesocialsdxb@gmail.com</span> from the address on your
+account and tell us what you want:</p>
+
+<ul>
+  <li>a copy of the data held for your account,</li>
+  <li>a correction to something that is wrong,</li>
+  <li>deletion of your account, if you would rather we did it than do it in the
+      app,</li>
+  <li>or an answer to any question about this policy.</li>
+</ul>
+
+<p>We will reply, and we aim to do so within 30 days. We may need to check that
+the request really comes from the account holder before we act on it.</p>
+
+<p>Depending on where you live you may have further rights over your personal
+data, such as the right to object to processing or to complain to a data
+protection authority. Write to us first and we will try to put it right.</p>
+
+<h2>Security</h2>
+
+<p>Traffic between the app and our database is encrypted in transit. The
+database enforces row level security, so an account can read and write only its
+own rows. Your session credential is kept in the device Keychain, and on iPhone
+and iPad you can require Face ID or Touch ID before Hopper will reopen it.</p>
+
+<p>No system is perfect. If we ever discover a breach affecting your data, we
+will tell you and any authority we are required to tell.</p>
+
+<h2>Children</h2>
+
+<p>Hopper is not directed at children, and we do not knowingly collect data from
+anyone under 13. If you believe a child has created an account, email us and we
+will remove it.</p>
+
+<h2>Changes to this policy</h2>
+
+<p>If this policy changes, the new version will appear on this page with a new
+date at the top. Changes that materially affect what we do with your data will
+be flagged in the app as well.</p>
+
+<h2>Contact</h2>
+
+<p>The Socials LLC<br>
+Dubai, United Arab Emirates<br>
+<span class="contact">thesocialsdxb@gmail.com</span></p>
+
+<footer>
+  <p>
+    <a href="../">Support</a>
+    <a href="mailto:thesocialsdxb@gmail.com">Contact</a>
+  </p>
+  <p class="meta">Hopper is made by The Socials LLC, Dubai, United Arab Emirates.</p>
+</footer>
+
+</div>
+</body>
+</html>

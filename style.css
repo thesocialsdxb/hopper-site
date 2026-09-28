@@ -1,0 +1,150 @@
+/* One stylesheet for both pages: the support page at /, the privacy policy at
+   /privacy/. Light and dark follow the reader's system setting, there is no
+   theme switch to get wrong, and the layout is a single column so it reads at
+   375 pixels wide without a horizontal scroll. No web fonts and no scripts:
+   the pages are served from GitHub Pages and should open on a slow connection
+   in an App Review browser. */
+
+:root {
+  color-scheme: light dark;
+  --bg: #ffffff;
+  --fg: #16181d;
+  --muted: #5b616e;
+  --rule: #e3e5ea;
+  --card: #f6f7f9;
+  --link: #9a5b00;
+  --accent: #b36b00;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0d0f12;
+    --fg: #ecedf0;
+    --muted: #a0a6b2;
+    --rule: #262a31;
+    --card: #15181d;
+    --link: #f0a94b;
+    --accent: #f0a94b;
+  }
+}
+
+* { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+               "Helvetica Neue", Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+.wrap {
+  max-width: 44rem;
+  margin: 0 auto;
+  padding: 2.5rem 1.25rem 4rem;
+}
+
+header.masthead {
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 1.25rem;
+  margin-bottom: 2rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin: 0 0 0.35rem;
+  font-weight: 600;
+}
+
+h1 {
+  font-size: 1.85rem;
+  line-height: 1.2;
+  margin: 0 0 0.5rem;
+  letter-spacing: -0.01em;
+}
+
+h2 {
+  font-size: 1.25rem;
+  line-height: 1.3;
+  margin: 2.5rem 0 0.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+
+h3 {
+  font-size: 1.02rem;
+  margin: 1.5rem 0 0.4rem;
+}
+
+p, li { margin: 0 0 0.85rem; }
+
+ul, ol { padding-left: 1.25rem; margin: 0 0 1rem; }
+
+li { margin-bottom: 0.5rem; }
+
+a {
+  color: var(--link);
+  text-underline-offset: 2px;
+}
+
+.lede {
+  font-size: 1.05rem;
+  color: var(--muted);
+  margin-bottom: 0;
+}
+
+.meta {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 1rem 1.1rem 0.5rem;
+  margin: 1.25rem 0;
+}
+
+.card h3 { margin-top: 0.3rem; }
+
+.path {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.05em 0.4em;
+  white-space: nowrap;
+}
+
+.contact {
+  font-weight: 600;
+  word-break: break-word;
+}
+
+footer {
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+footer a { margin-right: 1rem; }
+
+@media (max-width: 26rem) {
+  .wrap { padding: 2rem 1rem 3rem; }
+  body { font-size: 16px; }
+  h1 { font-size: 1.55rem; }
+  .path { white-space: normal; }
+}
