@@ -231,6 +231,10 @@ window.onGoogleLibraryLoad = function () {
   google.accounts.id.initialize({ client_id: CLIENT_ID, callback: signedIn });
   google.accounts.id.renderButton(el("gbutton"), {
     theme: "outline", size: "large", text: "signin_with", shape: "pill",
+    // Pinned to English. Google otherwise localises the button to whatever
+    // region the browser reports, which in Dubai renders it in Arabic on an
+    // otherwise English page.
+    locale: "en",
   });
 };
 </script>
