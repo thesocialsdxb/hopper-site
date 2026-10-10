@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Send Paul a job list</title>
+<meta name="description" content="Sign in with your work Google account and send Paul a list of things to do. One line per job.">
+<meta name="robots" content="noindex, nofollow">
+<link rel="stylesheet" href="../style.css">
+<style>
+/* Page specific, so the support and privacy pages that App Review opens keep
+   a stylesheet with no scripts and nothing extra in it. */
+.panel { background: var(--card); border: 1px solid var(--rule); border-radius: 12px;
+         padding: 1.25rem; margin: 1.5rem 0; }
+.panel h2 { margin-top: 0; }
+label { display: block; font-weight: 600; margin: 1.25rem 0 0.4rem; }
+textarea, select { width: 100%; font: inherit; color: var(--fg); background: var(--bg);
+                   border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.7rem; }
+textarea { min-height: 11rem; resize: vertical; line-height: 1.5; }
+button { font: inherit; font-weight: 600; cursor: pointer; color: #fff;
+         background: var(--accent); border: 0; border-radius: 8px;
+         padding: 0.7rem 1.4rem; margin-top: 1.25rem; }
+button[disabled] { opacity: 0.5; cursor: default; }
+.note { color: var(--muted); font-size: 0.9rem; }
+.count { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
+.said { border-radius: 8px; padding: 0.8rem 0.9rem; margin: 1.25rem 0 0;
+        border: 1px solid var(--rule); }
+.said.good { border-color: var(--accent); }
+.said.bad  { border-color: #c0392b; }
+.hidden { display: none; }
+ol.jobs { color: var(--muted); font-size: 0.9rem; padding-left: 1.4rem; margin: 0.4rem 0 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Hopper</p>
+  <h1>Send a job list</h1>
+  <p class="lede">Sign in with your work account and tell Paul what you need doing.</p>
+</header>
+
+<!-- Signed out -->
+<section id="signin" class="panel">
+  <h2>Sign in</h2>
+  <p>Use the Google account your business gave you. Nothing is created for you
+  and there is no password to remember: signing in only proves the address is
+  yours.</p>
+  <div id="gbutton"></div>
+  <p class="note" id="signinNote">If the button does not appear, your browser is
+  blocking Google's sign in script. Try a different browser.</p>
+</section>
+
+<!-- Signed in -->
+<section id="form" class="panel hidden">
+  <h2>What do you need doing?</h2>
+  <p class="note" id="hello"></p>
+
+  <label for="venture">Which business is this for?</label>
+  <select id="venture"></select>
+
+  <label for="jobs">The jobs, one per line</label>
+  <textarea id="jobs" placeholder="Call the school about the September intake
+Send the September invoice to the landlord
+Book the venue for the open day"></textarea>
+  <p class="count" id="count">Nothing typed yet.</p>
+
+  <button id="send" type="button">Send</button>
+  <div id="said" class="said hidden"></div>
+</section>
+
+<section class="panel">
+  <h2>What happens to this</h2>
+  <p>Each line becomes one job in Paul's list, marked as coming from you. You
+  cannot see or change anything else, and nobody else can see what you send.</p>
+  <p class="note">Up to 50 lines at a time. If you send the same list twice by
+  accident, it is only recorded once.</p>
+</section>
+
+<p class="meta">Hopper, The Socials LLC.</p>
+
+</div>
+
+<script>
+// The form. Three things happen here and nothing else:
+//
+//   1. Google signs the visitor in and hands this page an ID token.
+//   2. The token goes to the intake function, which answers with their name
+//      and the businesses they are allowed to send to. The page asks; it does
+//      not decide. A list that arrived from the function is the only list
+//      shown, so a person who edits this page in their own browser learns
+//      nothing and gains nothing.
+//   3. The typed lines go back with the token.
+//
+// Everything that matters is checked on the server. This file is convenience.
+"use strict";
+
+const ENDPOINT = "https://lnnyzgkgllepnvekxwha.supabase.co/functions/v1/intake";
+const CLIENT_ID = "741162987231-be2t4kbo8rsgl5lv1qoh83spgtv7hdl8.apps.googleusercontent.com";
+
+const el = (id) => document.getElementById(id);
+let token = null;
+// One id per submission, kept across retries so a double tap or a flaky
+// connection writes the jobs once. Replaced only after something is saved.
+let submissionId = crypto.randomUUID();
+
+function say(message, good) {
+  const box = el("said");
+  box.textContent = message;
+  box.className = "said " + (good ? "good" : "bad");
+  box.classList.remove("hidden");
+}
+
+function lines() {
+  return el("jobs").value
+    .split("\n")
+    .map((l) => l.replace(/^\s*(?:[-*•]|\d+[.)])\s+/, "").trim())
+    .filter((l) => l.length > 0);
+}
+
+function recount() {
+  const n = lines().length;
+  el("count").textContent = n === 0
+    ? "Nothing typed yet."
+    : n === 1 ? "1 job." : n + " jobs." + (n > 50 ? " Only the first 50 will be sent." : "");
+}
+
+async function ask(payload) {
+  const r = await fetch(ENDPOINT, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  let body = {};
+  try { body = await r.json(); } catch (e) { /* a 502 with no body is still a failure */ }
+  return { status: r.status, body };
+}
+
+// What a refusal means, in words a person can act on. Deliberately plain about
+// the one case they can fix themselves and vague about nothing else.
+function plainly(status, body) {
+  if (status === 403 && body.error === "not-on-the-list") {
+    return "That address is not set up to send jobs. Ask Paul to add it, and tell him which address you used.";
+  }
+  if (status === 403 && body.error === "not-your-venture") {
+    return "You cannot send to that business. Reload the page and pick one from the list.";
+  }
+  if (status === 401) return "That sign in was not accepted. Sign in again.";
+  if (status === 400 && body.error === "nothing-to-send") return "Type at least one line first.";
+  if (status === 503) return "Hopper could not be reached just now. Try again in a minute.";
+  return "That did not go through. Try again, and tell Paul if it keeps happening.";
+}
+
+async function signedIn(response) {
+  token = response.credential;
+  const { status, body } = await ask({ action: "me", token });
+  if (status !== 200) {
+    el("signinNote").textContent = plainly(status, body);
+    return;
+  }
+
+  el("hello").textContent = body.name
+    ? "Signed in as " + body.name + "."
+    : "Signed in.";
+
+  const pick = el("venture");
+  pick.innerHTML = "";
+  // Only what the function returned. One option means no decision to make, so
+  // it is still shown, as the answer rather than a choice.
+  for (const v of body.ventures || []) {
+    const option = document.createElement("option");
+    option.value = v.id;
+    option.textContent = v.name;
+    pick.appendChild(option);
+  }
+  // Always offered, and the only option for somebody allowed in without a
+  // business attached. An empty value means no venture, which the function
+  // reads as the Inbox with none, which is where anything unsure belongs.
+  const unsure = document.createElement("option");
+  unsure.value = "";
+  unsure.textContent = "Not sure, let Paul decide";
+  pick.appendChild(unsure);
+
+  el("signin").classList.add("hidden");
+  el("form").classList.remove("hidden");
+  el("jobs").focus();
+}
+
+async function send() {
+  const typed = lines();
+  if (typed.length === 0) { say("Type at least one line first.", false); return; }
+
+  const button = el("send");
+  button.disabled = true;
+  button.textContent = "Sending";
+  try {
+    const { status, body } = await ask({
+      action: "send",
+      token,
+      submissionId,
+      workspaceId: el("venture").value || null,
+      body: typed.join("\n"),
+    });
+    if (status === 200 && body.ok) {
+      const saved = body.saved;
+      say(saved === 0
+        ? "Already sent. Nothing was added twice."
+        : "Sent. " + saved + (saved === 1 ? " job is" : " jobs are") + " in Paul's list.", true);
+      if (saved > 0) {
+        el("jobs").value = "";
+        recount();
+        // A new id, so the next list is a new list rather than a repeat.
+        submissionId = crypto.randomUUID();
+      }
+    } else {
+      say(plainly(status, body), false);
+    }
+  } catch (e) {
+    say("No connection. Your typing is still here, so try again when you are back online.", false);
+  } finally {
+    button.disabled = false;
+    button.textContent = "Send";
+  }
+}
+
+el("jobs").addEventListener("input", recount);
+el("send").addEventListener("click", send);
+
+window.onGoogleLibraryLoad = function () {
+  el("signinNote").classList.add("hidden");
+  google.accounts.id.initialize({ client_id: CLIENT_ID, callback: signedIn });
+  google.accounts.id.renderButton(el("gbutton"), {
+    theme: "outline", size: "large", text: "signin_with", shape: "pill",
+  });
+};
+</script>
+<script src="https://accounts.google.com/gsi/client" async></script>
+</body>
+</html>
