@@ -14,6 +14,10 @@
          padding: 1.25rem; margin: 1.5rem 0; }
 .panel h2 { margin-top: 0; }
 label { display: block; font-weight: 600; margin: 1.25rem 0 0.4rem; }
+input[type="file"] { width: 100%; font: inherit; color: var(--fg); }
+input[type="file"]::file-selector-button { font: inherit; font-weight: 600; cursor: pointer;
+  color: var(--fg); background: var(--card); border: 1px solid var(--rule);
+  border-radius: 8px; padding: 0.45rem 0.9rem; margin-right: 0.75rem; }
 textarea, select { width: 100%; font: inherit; color: var(--fg); background: var(--bg);
                    border: 1px solid var(--rule); border-radius: 8px; padding: 0.6rem 0.7rem; }
 textarea { min-height: 11rem; resize: vertical; line-height: 1.5; }
@@ -70,6 +74,11 @@ Send the September invoice to the landlord
 Book the venue for the open day"></textarea>
   <p class="count" id="count">Nothing typed yet.</p>
 
+  <label for="files">Attach anything that helps (optional)</label>
+  <input id="files" type="file" multiple
+         accept=".pdf,.docx,.txt,.md,.rtf,.png,.jpg,.jpeg,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain,text/markdown,application/rtf,text/rtf,image/png,image/jpeg">
+  <p class="count" id="fileCount">Up to 5 files, 10 MB each. PDF, Word, text, or a screenshot.</p>
+
   <button id="send" type="button">Send</button>
   <div id="said" class="said hidden"></div>
 </section>
@@ -79,8 +88,11 @@ Book the venue for the open day"></textarea>
   <p>Each line becomes one job in Paul's list, filed under the business and the
   part you chose, and marked as coming from you. You cannot see or change
   anything else, and nobody else can see what you send.</p>
-  <p class="note">Up to 50 lines at a time. If you send the same list twice by
-  accident, it is only recorded once.</p>
+  <p class="note">Up to 50 lines at a time, and up to 5 files. If you send the
+  same list twice by accident, it is only recorded once.</p>
+  <p class="note">Files are stored privately and only Paul can open them. A
+  file that does not match the kind of file it says it is will be refused, and
+  nothing in it is ever run.</p>
 </section>
 
 <p class="meta">Hopper, The Socials LLC.</p>
@@ -105,6 +117,11 @@ const ENDPOINT = "https://lnnyzgkgllepnvekxwha.supabase.co/functions/v1/intake";
 const CLIENT_ID = "741162987231-be2t4kbo8rsgl5lv1qoh83spgtv7hdl8.apps.googleusercontent.com";
 
 const el = (id) => document.getElementById(id);
+
+// Kept in step with the function, which refuses anything else. The page checks
+// first only so somebody is told before a 10 MB upload, never instead.
+const MAX_FILES = 5;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
 let token = null;
 // What the function said this person may send to. The page never decides any
 // of this: it draws what it was told and sends back an id from that list.
@@ -127,6 +144,29 @@ function lines() {
     .filter((l) => l.length > 0);
 }
 
+function describeFiles() {
+  const chosen = [...el("files").files];
+  const note = el("fileCount");
+  if (chosen.length === 0) {
+    note.textContent = "Up to 5 files, 10 MB each. PDF, Word, text, or a screenshot.";
+    return true;
+  }
+  if (chosen.length > MAX_FILES) {
+    note.textContent = `That is ${chosen.length} files. The limit is ${MAX_FILES}.`;
+    return false;
+  }
+  const big = chosen.find((f) => f.size > MAX_FILE_BYTES);
+  if (big) {
+    note.textContent = `${big.name} is larger than 10 MB.`;
+    return false;
+  }
+  const mb = chosen.reduce((n, f) => n + f.size, 0) / (1024 * 1024);
+  note.textContent = chosen.length === 1
+    ? `1 file, ${mb.toFixed(1)} MB.`
+    : `${chosen.length} files, ${mb.toFixed(1)} MB in total.`;
+  return true;
+}
+
 function recount() {
   const n = lines().length;
   el("count").textContent = n === 0
@@ -134,12 +174,24 @@ function recount() {
     : n === 1 ? "1 job." : n + " jobs." + (n > 50 ? " Only the first 50 will be sent." : "");
 }
 
-async function ask(payload) {
-  const r = await fetch(ENDPOINT, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
+async function ask(payload, files = []) {
+  // With files this goes as a form, with the same JSON in a payload part, so
+  // the function reads one shape whether or not anything is attached. Without
+  // files it stays plain JSON, exactly as before.
+  let init;
+  if (files.length) {
+    const form = new FormData();
+    form.set("payload", JSON.stringify(payload));
+    for (const f of files) form.append("file", f);
+    init = { method: "POST", body: form };
+  } else {
+    init = {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    };
+  }
+  const r = await fetch(ENDPOINT, init);
   let body = {};
   try { body = await r.json(); } catch (e) { /* a 502 with no body is still a failure */ }
   return { status: r.status, body };
@@ -159,6 +211,19 @@ function plainly(status, body) {
   }
   if (status === 401) return "That sign in was not accepted. Sign in again.";
   if (status === 400 && body.error === "nothing-to-send") return "Type at least one line first.";
+  if (status === 400 && body.error === "too-many-files") return "That is too many files. The limit is 5.";
+  if (status === 400 && body.error === "bad-file") {
+    const named = body.file ? `"${body.file}"` : "That file";
+    if (body.reason === "wrong-type") {
+      return `${named} is not a kind of file we take. Send a PDF, a Word file, text, or a screenshot.`;
+    }
+    if (body.reason === "not-what-it-claims") {
+      return `${named} does not look like what its name says it is, so it was not accepted. Nothing was sent.`;
+    }
+    if (body.reason === "too-big") return `${named} is larger than 10 MB.`;
+    if (body.reason === "empty") return `${named} is empty.`;
+    return `${named} could not be accepted. Nothing was sent.`;
+  }
   if (status === 503) return "Hopper could not be reached just now. Try again in a minute.";
   return "That did not go through. Try again, and tell Paul if it keeps happening.";
 }
@@ -230,6 +295,8 @@ function drawCategories() {
 async function send() {
   const typed = lines();
   if (typed.length === 0) { say("Type at least one line first.", false); return; }
+  if (!describeFiles()) { say(el("fileCount").textContent, false); return; }
+  const files = [...el("files").files];
 
   const button = el("send");
   button.disabled = true;
@@ -242,15 +309,21 @@ async function send() {
       workspaceId: el("venture").value || null,
       categoryId: el("category").value || null,
       body: typed.join("\n"),
-    });
+    }, files);
     if (status === 200 && body.ok) {
       const saved = body.saved;
+      const withFiles = body.files
+        ? ` ${body.files} ${body.files === 1 ? "file" : "files"} attached.`
+        : "";
       say(saved === 0
         ? "Already sent. Nothing was added twice."
-        : "Sent. " + saved + (saved === 1 ? " job is" : " jobs are") + " in Paul's list.", true);
+        : "Sent. " + saved + (saved === 1 ? " job is" : " jobs are") + " in Paul's list." + withFiles,
+        true);
       if (saved > 0) {
         el("jobs").value = "";
+        el("files").value = "";
         recount();
+        describeFiles();
         // A new id, so the next list is a new list rather than a repeat.
         submissionId = crypto.randomUUID();
       }
@@ -266,6 +339,7 @@ async function send() {
 }
 
 el("venture").addEventListener("change", drawCategories);
+el("files").addEventListener("change", describeFiles);
 el("jobs").addEventListener("input", recount);
 el("send").addEventListener("click", send);
 
