@@ -59,6 +59,11 @@ ol.jobs { color: var(--muted); font-size: 0.9rem; padding-left: 1.4rem; margin: 
   <label for="venture">Which business is this for?</label>
   <select id="venture"></select>
 
+  <div id="categoryRow" class="hidden">
+    <label for="category">Which part of it?</label>
+    <select id="category"></select>
+  </div>
+
   <label for="jobs">The jobs, one per line</label>
   <textarea id="jobs" placeholder="Call the school about the September intake
 Send the September invoice to the landlord
@@ -71,8 +76,9 @@ Book the venue for the open day"></textarea>
 
 <section class="panel">
   <h2>What happens to this</h2>
-  <p>Each line becomes one job in Paul's list, marked as coming from you. You
-  cannot see or change anything else, and nobody else can see what you send.</p>
+  <p>Each line becomes one job in Paul's list, filed under the business and the
+  part you chose, and marked as coming from you. You cannot see or change
+  anything else, and nobody else can see what you send.</p>
   <p class="note">Up to 50 lines at a time. If you send the same list twice by
   accident, it is only recorded once.</p>
 </section>
@@ -100,6 +106,9 @@ const CLIENT_ID = "741162987231-be2t4kbo8rsgl5lv1qoh83spgtv7hdl8.apps.googleuser
 
 const el = (id) => document.getElementById(id);
 let token = null;
+// What the function said this person may send to. The page never decides any
+// of this: it draws what it was told and sends back an id from that list.
+let ventures = [];
 // One id per submission, kept across retries so a double tap or a flaky
 // connection writes the jobs once. Replaced only after something is saved.
 let submissionId = crypto.randomUUID();
@@ -145,6 +154,9 @@ function plainly(status, body) {
   if (status === 403 && body.error === "not-your-venture") {
     return "You cannot send to that business. Reload the page and pick one from the list.";
   }
+  if (status === 403 && body.error === "not-your-category") {
+    return "That part does not belong to that business. Reload the page and pick again.";
+  }
   if (status === 401) return "That sign in was not accepted. Sign in again.";
   if (status === 400 && body.error === "nothing-to-send") return "Type at least one line first.";
   if (status === 503) return "Hopper could not be reached just now. Try again in a minute.";
@@ -163,11 +175,13 @@ async function signedIn(response) {
     ? "Signed in as " + body.name + "."
     : "Signed in.";
 
+  ventures = body.ventures || [];
+
   const pick = el("venture");
   pick.innerHTML = "";
   // Only what the function returned. One option means no decision to make, so
   // it is still shown, as the answer rather than a choice.
-  for (const v of body.ventures || []) {
+  for (const v of ventures) {
     const option = document.createElement("option");
     option.value = v.id;
     option.textContent = v.name;
@@ -181,9 +195,36 @@ async function signedIn(response) {
   unsure.textContent = "Not sure, let Paul decide";
   pick.appendChild(unsure);
 
+  drawCategories();
   el("signin").classList.add("hidden");
   el("form").classList.remove("hidden");
   el("jobs").focus();
+}
+
+/** The categories of whichever business is chosen, and nothing else.
+ *
+ * Redrawn every time the business changes, so a category can never be sent
+ * with a business it does not belong to. The function refuses that anyway, as
+ * it must, but a form that can express a refused thing is a form that confuses
+ * people. A business with no categories simply hides the row. */
+function drawCategories() {
+  const venture = ventures.find((v) => v.id === el("venture").value);
+  const list = (venture && venture.categories) || [];
+  const pick = el("category");
+  pick.innerHTML = "";
+
+  const none = document.createElement("option");
+  none.value = "";
+  none.textContent = "Not sure, leave it unfiled";
+  pick.appendChild(none);
+
+  for (const c of list) {
+    const option = document.createElement("option");
+    option.value = c.id;
+    option.textContent = c.name;
+    pick.appendChild(option);
+  }
+  el("categoryRow").classList.toggle("hidden", list.length === 0);
 }
 
 async function send() {
@@ -199,6 +240,7 @@ async function send() {
       token,
       submissionId,
       workspaceId: el("venture").value || null,
+      categoryId: el("category").value || null,
       body: typed.join("\n"),
     });
     if (status === 200 && body.ok) {
@@ -223,6 +265,7 @@ async function send() {
   }
 }
 
+el("venture").addEventListener("change", drawCategories);
 el("jobs").addEventListener("input", recount);
 el("send").addEventListener("click", send);
 
