@@ -26,6 +26,12 @@ button { font: inherit; font-weight: 600; cursor: pointer; color: #fff;
          padding: 0.7rem 1.4rem; margin-top: 1.25rem; }
 button[disabled] { opacity: 0.5; cursor: default; }
 .note { color: var(--muted); font-size: 0.9rem; }
+/* A button, because it does something, drawn as a link, because it is an
+   aside rather than the thing you came to press. */
+.linkish { background: none; border: 0; padding: 0; font: inherit;
+           color: var(--link, #3B82C4); text-decoration: underline;
+           cursor: pointer; }
+.linkish:disabled { color: var(--muted); text-decoration: none; cursor: default; }
 .count { color: var(--muted); font-size: 0.9rem; margin-top: 0.4rem; }
 .said { border-radius: 8px; padding: 0.8rem 0.9rem; margin: 1.25rem 0 0;
         border: 1px solid var(--rule); }
@@ -50,6 +56,7 @@ ol.jobs { color: var(--muted); font-size: 0.9rem; padding-left: 1.4rem; margin: 
   <p>Use the Google account your business gave you. Nothing is created for you
   and there is no password to remember: signing in only proves the address is
   yours.</p>
+  <p class="note hidden" id="wasOn"></p>
   <div id="gbutton"></div>
   <p class="note" id="signinNote">If the button does not appear, your browser is
   blocking Google's sign in script. Try a different browser.</p>
@@ -59,6 +66,10 @@ ol.jobs { color: var(--muted); font-size: 0.9rem; padding-left: 1.4rem; margin: 
 <section id="form" class="panel hidden">
   <h2>What do you need doing?</h2>
   <p class="note" id="hello"></p>
+  <p class="note">
+    <button type="button" id="switch" class="linkish">Use a different account</button>
+    <span id="switchWhy"></span>
+  </p>
 
   <label for="venture">Which business is this for?</label>
   <select id="venture"></select>
@@ -123,6 +134,16 @@ const el = (id) => document.getElementById(id);
 const MAX_FILES = 5;
 const MAX_FILE_BYTES = 10 * 1024 * 1024;
 let token = null;
+// The address signed in with, for the line that says which account this is.
+// Read out of the token in the browser for DISPLAY ONLY: the function
+// verifies the signature, the audience, the issuer and the expiry before it
+// trusts a single field, and nothing here is ever sent back as a claim.
+//
+// It matters because one person can have two work addresses. Garrett has an
+// Ether one and an EduMind one, and his NAME is the same on both, so a line
+// reading "Signed in as Garrett" tells him nothing about which list his jobs
+// are about to land in.
+let signedInAs = null;
 // What the function said this person may send to. The page never decides any
 // of this: it draws what it was told and sends back an id from that list.
 let ventures = [];
@@ -228,17 +249,79 @@ function plainly(status, body) {
   return "That did not go through. Try again, and tell Paul if it keeps happening.";
 }
 
+/** The address inside a Google ID token, for display only.
+ *
+ * No verification here and none attempted. The function checks the
+ * signature, that the audience is our client id, the issuer, the expiry and
+ * that the address is verified, before it trusts anything in it. This only
+ * reads the middle segment so the page can say which account you are on, and
+ * a tampered token would simply mislabel a request the function then refuses.
+ */
+function addressIn(jwt) {
+  try {
+    const part = String(jwt).split(".")[1];
+    if (!part) return null;
+    const padded = part.replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(
+      atob(padded + "===".slice((padded.length + 3) % 4))
+        .split("")
+        .map((c) => "%" + ("00" + c.charCodeAt(0).toString(16)).slice(-2))
+        .join(""));
+    const email = JSON.parse(json).email;
+    return typeof email === "string" && email ? email : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Back to the sign in panel, so another account can be used.
+ *
+ * disableAutoSelect is the part that matters. Without it Google signs the
+ * same person straight back in with the account it used last, and the button
+ * that says "use a different account" visibly does nothing. */
+function useAnotherAccount() {
+  const was = signedInAs;
+  token = null;
+  signedInAs = null;
+  ventures = [];
+  // A fresh submission id. The old one belongs to the account that was
+  // signed in, and reusing it would make the first jobs sent from the new
+  // account look like a retry of the last person's and be dropped.
+  submissionId = crypto.randomUUID();
+  try { google.accounts.id.disableAutoSelect(); } catch {}
+  el("form").classList.add("hidden");
+  el("signin").classList.remove("hidden");
+  const note = el("wasOn");
+  note.textContent = was
+    ? "You were on " + was + ". Pick the account you want to send as."
+    : "Pick the account you want to send as.";
+  note.classList.remove("hidden");
+  el("signinNote").textContent = "";
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
 async function signedIn(response) {
   token = response.credential;
+  signedInAs = addressIn(response.credential);
   const { status, body } = await ask({ action: "me", token });
   if (status !== 200) {
-    el("signinNote").textContent = plainly(status, body);
+    // Named, so somebody with two addresses can see which one was turned
+    // away rather than guessing. Refused is not an error on their part.
+    el("signinNote").textContent =
+      (signedInAs ? signedInAs + ": " : "") + plainly(status, body);
+    token = null;
     return;
   }
 
-  el("hello").textContent = body.name
-    ? "Signed in as " + body.name + "."
+  el("wasOn").classList.add("hidden");
+  // The ADDRESS, not only the name. One person can hold two work accounts
+  // with the same name on both, and the address is the only part that says
+  // which list these jobs are going to.
+  const who = body.name ? body.name + ", " + (signedInAs || "") : (signedInAs || "");
+  el("hello").textContent = who.trim()
+    ? "Signed in as " + who.replace(/,\s*$/, "") + "."
     : "Signed in.";
+  el("switchWhy").textContent = " if this is the wrong one.";
 
   ventures = body.ventures || [];
 
@@ -342,6 +425,7 @@ el("venture").addEventListener("change", drawCategories);
 el("files").addEventListener("change", describeFiles);
 el("jobs").addEventListener("input", recount);
 el("send").addEventListener("click", send);
+el("switch").addEventListener("click", useAnotherAccount);
 
 window.onGoogleLibraryLoad = function () {
   el("signinNote").classList.add("hidden");
@@ -355,6 +439,12 @@ window.onGoogleLibraryLoad = function () {
   });
 };
 </script>
-<script src="https://accounts.google.com/gsi/client" async></script>
+<!-- hl=en pins the language of everything Google draws here.
+     The `locale` option on renderButton was supposed to do this and does
+     not: on a browser reporting en-GB, with that option set, Google still
+     rendered the button in Arabic, because it falls back to the viewer's
+     Google account or their region rather than the page. Checked on 12
+     October 2026 against a browser reporting en-GB and nothing else. -->
+<script src="https://accounts.google.com/gsi/client?hl=en" async></script>
 </body>
 </html>
